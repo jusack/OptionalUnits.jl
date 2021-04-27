@@ -1,7 +1,11 @@
 name = "OptionalUnits"
 uuid = "ab672c3a-6a39-49e9-b031-a9ea1dfe8e4f"
-authors = ["Justin Ackers <justin.ackers@imte.fraunhofer.de and contributors"]
+authors = ["Justin Ackers <justin.ackers@imte.fraunhofer.de> and contributors"]
 version = "0.1.0"
+
+[deps]
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 julia = "1"
