@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · OptionalUnits.jl</title><link rel="canonical" href="https://jusack.github.io/OptionalUnits.jl/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">OptionalUnits.jl</span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#Usage"><span>Usage</span></a></li><li><a class="tocitem" href="#Exports"><span>Exports</span></a></li></ul></li><li><a class="tocitem" href="todo/">Open Issues</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/jusack/OptionalUnits.jl/blob/master/docs/src/index.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="OptionalUnits"><a class="docs-heading-anchor" href="#OptionalUnits">OptionalUnits</a><a id="OptionalUnits-1"></a><a class="docs-heading-anchor-permalink" href="#OptionalUnits" title="Permalink"></a></h1><p>Having the appropiate physical units attached to your variables is a good way to protect yourself from accidental miscalculations and keeps you from wondering if that float is supposed to be in m or mm. However when using Unitful I reached a point, where I either had to use units in all of my code (which is not something that I want to be forced to do) or I found myself writing wrapper functions that added an implicit unit to the raw number and passed it to the function using Unitful. To automate this process I created this package.</p><p>This package defines the <code>@optionalunits</code> macro that can be attached to a function or struct definition to automatically define a function or constructor that can either use a <code>Unitful.Quantity</code> of the right dimension or use a raw number with an implicit unit allowing the user of the function to choose either the error detection mechanism of Unitfuls explicit units or the simplicity of raw numbers with implicit units.</p><h2 id="Usage"><a class="docs-heading-anchor" href="#Usage">Usage</a><a id="Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Usage" title="Permalink"></a></h2><h3 id="Functions"><a class="docs-heading-anchor" href="#Functions">Functions</a><a id="Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Functions" title="Permalink"></a></h3><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Currently the <code>@optionalunits</code> macro only works with the <code>function f(x) end</code> syntax, the shorthand form <code>f(x)=</code> is not yet supported!</p></div></div><p>Applied to a function definition the <code>@optionalunits</code> macro can be used like this:</p><pre><code class="language-julia">@optionalunits function addOneMeter(x::Unitful.Length→u&quot;m&quot;)
+    return x+1u&quot;m&quot;
+end</code></pre><p>Behind every type parameter that is a <code>Unitful.Dimension</code> a default unit can be annotated with → (<code>\rightarrow[TAB]</code>]). The macro changes the function definition to the following:</p><pre><code class="language-julia">function addOneMeter(x::Union{Unitful.Length,Real})
+    if Unitful.dimension(x) == NoDims
+        @warn &quot;Used default unit m for&quot; x
+        x *= u&quot;m&quot;
+    end
+        
+    return x+1u&quot;m&quot;
+end</code></pre><p>The macro also works with array-like types of uniform dimension</p><pre><code class="language-julia">@optionalunits function addOneMeter(x::Vector{Unitful.Length→u&quot;m&quot;})
+    return x.+1u&quot;m&quot;
+end</code></pre><p>the new function definition looks slightly different:</p><pre><code class="language-julia">function addOneMeter(x::Union{Vector{&lt;:Unitful.Length},Vector{&lt;:Real}})
+    dims = Unitful.dimension(x)
+    @assert all(dims .== [first(dims)]) &quot;The array-like type x has mixed dimensions which is not supported by @optionalunits&quot;
+    if first(dims) == NoDims
+        @warn &quot;Used default unit m for array-like type&quot; x
+        x *= u&quot;m&quot;
+    end
+        
+    return x.+1u&quot;m&quot;
+end</code></pre><p>This definition allows the function to be called with or without units:</p><pre><code class="language-julia">julia&gt; addOneMeter(1u&quot;m&quot;)
+2 m
+
+julia&gt; addOneMeter(1.0u&quot;mm&quot;)
+1.001 m
+
+julia&gt; addOneMeter(1.0)
+┌ Warning: Used default unit m for
+│   x = 1.0
+└ @ Main REPL[18]:3
+2.0 m
+
+julia&gt; addOneMeter(1.0u&quot;m/s&quot;)
+ERROR: MethodError: no method matching addOneMeter(::Quantity{Float64, 𝐋  𝐓 ^-1, Unitful.FreeUnits{(m, s^-1), 𝐋  𝐓 ^-1, nothing}})</code></pre><p>Of course multiple annotated and unannotated arguments, the combination of these two versions, and the use of optional arguments works.</p><h3 id="Structs"><a class="docs-heading-anchor" href="#Structs">Structs</a><a id="Structs-1"></a><a class="docs-heading-anchor-permalink" href="#Structs" title="Permalink"></a></h3><p>To use units in a struct Unitful recommends using a concrete type for every field, i.e. a <code>Unitful.Quantity</code> with a fixed datatype, dimension and unit. Therefore, no extra annotation of default units is needed to use the <code>@optionalunits</code> macro. When applied on a struct definition the macro redefines the default outer constructor (with all Any parameters) and adds the fallback to use the default units:</p><pre><code class="language-julia">@optionalunits struct Point
+    x::typeof(1.0u&quot;m&quot;)
+    y::typeof(1.0u&quot;m&quot;)
+end</code></pre><p>The struct definition itself is not changed, but the following outer constructor is defined:</p><pre><code class="language-julia">function Point(x,y)
+    if dimension(x) == NoDims
+        @warn &quot;Used default unit m for &quot; x
+        x *= u&quot;m&quot;
+    end
+    x = Base.convert(Core.fieldtype(Point, 1), x)
+
+    if dimension(y) == NoDims
+        @warn &quot;Used default unit m for &quot; y
+        y *= u&quot;m&quot;
+    end
+    y = Base.convert(Core.fieldtype(Point, 2), y)
+
+    return Point(x,y)
+end</code></pre><p>The same principle applies to fields of an array-like type.</p><p>The code can be found on <a href="https://github.com/jusack/OptionalUnits.jl">GitHub</a>.</p><h2 id="Exports"><a class="docs-heading-anchor" href="#Exports">Exports</a><a id="Exports-1"></a><a class="docs-heading-anchor-permalink" href="#Exports" title="Permalink"></a></h2><ul><li><a href="#OptionalUnits.@optionalunits-Tuple{Any}"><code>OptionalUnits.@optionalunits</code></a></li></ul><article class="docstring"><header><a class="docstring-binding" id="OptionalUnits.@optionalunits-Tuple{Any}" href="#OptionalUnits.@optionalunits-Tuple{Any}"><code>OptionalUnits.@optionalunits</code></a> — <span class="docstring-category">Macro</span></header><section><div><p>Can be applied to function and struct definitions that use Unitful types to add default units, when the parameters that are passed to the function do not have a unit attached.</p><p>In a function definition the type parameter e.g. Unitful.Length is appended with the default unit (e.g. x::Unitful.Length→u&quot;mm&quot;)</p><p>In a struct definition nothing additional has to be added, the field types with Unitful.Quantity will be detected</p><p><strong>Examples</strong></p><pre><code class="language-julia">julia&gt; using OptionalUnits, Unitful
+
+julia&gt;  @optionalunits function addOneMeter(x::Unitful.Length→u&quot;m&quot;)
+            return x+1u&quot;m&quot;
+        end
+
+julia&gt;  @optionalunits function addOneMeter(x::Vector{Unitful.Length→u&quot;m&quot;})
+            return x.+1u&quot;m&quot;
+        end
+
+julia&gt; @optionalunits struct Point
+            x::typeof(1.0u&quot;m&quot;)
+            y::typeof(1.0u&quot;m&quot;)
+        end
+
+julia&gt;  Point(1,2)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jusack/OptionalUnits.jl/blob/958f6a7e202a7e50f05d8e97b9ab6a050360e444/src/OptionalUnits.jl#L8-L34">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="todo/">Open Issues »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 27 April 2021 16:16">Tuesday 27 April 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
