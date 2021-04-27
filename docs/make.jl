@@ -1,11 +1,11 @@
 using OptionalUnits
 using Documenter
 
-DocMeta.setdocmeta!(OptionalUnits, :DocTestSetup, :(using OptionalUnits); recursive=true)
+DocMeta.setdocmeta!(OptionalUnits, :DocTestSetup, :(using OptionalUnits, Unitful); recursive=true)
 
 makedocs(;
     modules=[OptionalUnits],
-    authors="Justin Ackers <justin.ackers@imte.fraunhofer.de and contributors",
+    authors="Justin Ackers <justin.ackers@imte.fraunhofer.de> and contributors",
     repo="https://github.com/jusack/OptionalUnits.jl/blob/{commit}{path}#{line}",
     sitename="OptionalUnits.jl",
     format=Documenter.HTML(;
@@ -15,6 +15,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Open Issues" => "todo.md"
     ],
 )
 
